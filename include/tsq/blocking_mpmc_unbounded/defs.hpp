@@ -33,6 +33,7 @@ private:
   node *get_tail();
   std::unique_ptr<node> wait_and_get();
   std::unique_ptr<node> try_get();
+  std::atomic<size_t> sz{0};
   // Description of private members :                   
   // 1. std::mutex head_mutex is used to prevent contention at the head pointer
   // This mutex is acquired when you are modifying std::unique_ptr<node> head to
@@ -74,7 +75,7 @@ public:
   bool try_pop(T& value);
   std::shared_ptr<T> try_pop();
   bool empty();
-  int size();
+  size_t size() const;
   ~blocking_mpmc_unbounded() = default; //default constructor: destroying head deletes all the nodes as head owns the node.
   // Add relevant constructors and destructors -> Add these here only
   // 1. void push(value) : Pushes the value inside the queue, copies the value

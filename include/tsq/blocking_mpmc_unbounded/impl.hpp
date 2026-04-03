@@ -13,6 +13,7 @@ template <typename T> void queue<T>::push(T value) {
     tail->data = temp;
     tail->next = std::move(t);
     tail = (tail->next).get();
+    ++sz;
     //lock.unlock();
     cond.notify_one();
 }
@@ -27,7 +28,7 @@ template <typename T> queue<T>::node *queue<T>::get_tail() {
 }
 
 template <typename T>
-std::unique_ptr<queue<T>::node> queue<T>::wait_and_get() {
+std::unique_ptr<typename queue<T>::node> queue<T>::wait_and_get() {
      std::unique_lock<std::mutex> lock(head_mutex);
      cond.wait(lock,[this]{ return head.get()!= get_tail();});
      //We use unique lock because we want extra control over the lock to unlock and relock it again.
@@ -39,7 +40,7 @@ std::unique_ptr<queue<T>::node> queue<T>::wait_and_get() {
      //                  head-|
 }
 
-template <typename T> std::unique_ptr<queue<T>::node> queue<T>::try_get() {
+template <typename T> std::unique_ptr<typename queue<T>::node> queue<T>::try_get() {
     std::lock_guard<std::mutex> lock(head_mutex);
     if(head.get()==get_tail()){
         return std::unique_ptr<node>();
@@ -52,10 +53,12 @@ template <typename T> std::unique_ptr<queue<T>::node> queue<T>::try_get() {
 template <typename T> void queue<T>::wait_and_pop(T &value) {
     std::unique_ptr<node> old = wait_and_get();
     value = std::move(*(old->data));
+    --sz;
 }
 
 template <typename T> std::shared_ptr<T> queue<T>::wait_and_pop() {
     std::unique_ptr<node> old = wait_and_get();
+    --sz;
     return old->data;
 }
 
@@ -63,12 +66,14 @@ template <typename T> bool queue<T>::try_pop(T &value) {
     std::unique_ptr<node> old = std::move(try_get());
     if(!old) return false;
     value = std::move(*(old->data));
+    --sz;
     return true;
 }
 
 template <typename T> std::shared_ptr<T> queue<T>::try_pop() {
     std::unique_ptr<node> old = std::move(try_get());
     if(!old) return nullptr;
+    --sz;
     return old->data;
 }
 
@@ -77,17 +82,9 @@ template <typename T> bool queue<T>::empty() {
     return (head.get()==get_tail());
 }         
 // head ->  dummy <- tail
-template <typename T> int queue<T>::size(){
-    std::lock_guard<std::mutex> lock1(head_mutex);
-    node* t = head.get();
-    std::lock_guard<std::mutex> lock2(tail_mutex);
-    int SIZE = 0;
-    while(t){
-        SIZE++;
-        t = t->next;
-    }
-    return SIZE-1;
-} //O(N) later to be made better by using atomics.
+template <typename T> size_t queue<T>::size() const{
+    return sz.load(std::memory_order_relaxed);
+} 
 
 
 #endif
