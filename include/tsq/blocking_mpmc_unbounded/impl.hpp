@@ -7,7 +7,7 @@ template <typename T>
 using queue = tsfqueue::__impl::blocking_mpmc_unbounded<T>;
 
 template <typename T> void queue<T>::push(T value) {
-    std::shared_ptr<T> temp = std::make_shared<T>(std::move(value));
+    std::shared_ptr<T> temp = std::make_shared<T>(:std:move(value));
     std::unique_ptr<node> t = std::make_unique<node>();
     std::lock_guard<std::mutex> lock(tail_mutex);
     tail->data = temp;

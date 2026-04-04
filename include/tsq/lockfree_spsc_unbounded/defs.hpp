@@ -29,9 +29,14 @@ private:
 
   // Add the private members :
   alignas(tsfq::__impl::cache_line_size) 
-  node* head;
+  node* head; //This is a spsc queue so, there is no data race between multiple consumer threads and hence 
+              // head not need be declared atomic.
   alignas(tsfq::__impl::cache_line_size) 
-  std::atomic<node*> tail;
+  std::atomic<node*> tail; //tail is required to be atomic as producer changes the tail while pushing
+                          // and consumer may try to read the tail while checking if the queue is empty.
+                          // If tail was not atomic this might lead to data race, that is while a consumer tries
+                          // to read it; the tail might get updated by the producer but the consumer gets the old value.
+
 
   // Description of private members :
   // 1. node* head -> Pointer to the head node
@@ -44,6 +49,9 @@ public:
   lockfree_spsc_unbounded() {
       head = new node();
       tail.store(head, std::memory_order_relaxed);
+      // memory_order_relaxed is used here since while calling the constructor
+      // multiple threads do not access the queue, rather once the queue is constructed
+      // then only we need to take care of data race as multiple threads start accessing the queue
   }
 
   ~lockfree_spsc_unbounded() {
@@ -52,6 +60,7 @@ public:
           head = head->next.load(std::memory_order_relaxed);
           delete temp;
       }
+      // destructor is called when no thread accesses the queue and in that case since no thread accesses the queue, no chance of data race
   }
   
   void push(T value); // Pushes the value inside the queue, copies the value
