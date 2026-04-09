@@ -13,6 +13,7 @@ template <typename T> void queue<T>::push(T value) {
     new_tail->next.store(nullptr,std::memory_order_relaxed);
     temp->next.store(new_tail,std::memory_order_release);
     tail.store(new_tail,std::memory_order_relaxed);
+    sz.fetch_add(1,std::memory_order_relaxed);
 }
 // head -> stub <-tail
 
@@ -23,6 +24,7 @@ template <typename T> bool queue<T>::try_pop(T &value) {
     value = std::move(old->data);
     head = nxt;
     delete old;
+    sz.fetch_sub(1, std::memory_order_relaxed);
     return true;
 }
 
@@ -50,6 +52,10 @@ template <typename T> bool queue<T>::empty(void) {
         return true;
     }
     return false;
+}
+
+template <typename T> size_t queue<T>::size() const {
+    return sz.load(std::memory_order_relaxed);
 }
 
 #endif

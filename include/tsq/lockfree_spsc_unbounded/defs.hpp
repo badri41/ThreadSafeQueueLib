@@ -42,6 +42,8 @@ private:
   // 1. node* head -> Pointer to the head node
   // 2. node* tail -> Pointer to tail node
   // 3. Cache align 1-2
+  alignas(tsfq::__impl::cache_line_size) std::atomic<size_t> sz{0};
+
 
 public:
   // Public member functions :
@@ -76,6 +78,7 @@ public:
   // 6. Add static asserts
   // 7. Add emplace_back using perfect forwarding and variadic templates (you
   // can use this in push then)
+  size_t size() const;
   // 8. Add size() function
   // 9. Any more suggestions ??
   // 10. Why no shared_ptr ?? [Reason this]
