@@ -63,3 +63,29 @@ TEST_F(SPSCTest, Peek_Works_Without_Removing) {
     EXPECT_EQ(q.size(), 1);
 }
 
+
+// checking for memoryleaks since we are doing dynamic memory allocation
+// basically  by the domino effect if the last pointed value is not there then everything else which is  a superset of it has also been destroyed properly
+// this test can also be thought of as checking if my queues destructore destroys  everything properly in a proper manner
+TEST(SPSCObjectTests, No_Memory_Leaks) {
+   
+// used shared pointer so that i can have this tracker concept  to prove the domino effect
+
+    auto my_object = std::make_shared<int>(99);
+    std::weak_ptr<int> tracker = my_object;
+    
+    {
+        lockfree_spsc_unbounded<std::shared_ptr<int>> queue;
+        
+       
+        queue.push(my_object);
+        my_object.reset();   // because the pushing mechanism creates a copy and increases strong reference count of the control block so -1 for the object.reset
+        // now only queue's copied shared ptr has ownership
+        
+        EXPECT_FALSE(tracker.expired());
+        
+        
+    }
+    
+    EXPECT_TRUE(tracker.expired()); 
+}
