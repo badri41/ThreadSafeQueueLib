@@ -167,9 +167,9 @@ TEST_F(SPSCTest, final_spsccheck_with_peek_and_pop) {
             int peek_val = -1;
             int pop_val = -1;
             
-            // If we successfully peeked...
+            
             if (q.peek(peek_val)) {
-                // ... we MUST be able to pop that exact same value out immediately.
+                
                 bool success = q.try_pop(pop_val);
                 EXPECT_TRUE(success);
                 EXPECT_EQ(peek_val, pop_val);
