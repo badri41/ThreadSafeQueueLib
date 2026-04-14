@@ -9,6 +9,36 @@
 
 namespace tsfqueue::impl {
 template <typename T> class lockfree_spsc_unbounded {
+
+  
+  static_assert(!std::is_reference_v<T>, 
+                "lockfree_spsc_unbounded: Queue cannot store reference types.");
+  // must not be a refernce due to first not immediately initialized inside the data part of node
+  // ,cannot be reassigned in a proper manner but this is not actually a  fault bcuz it overwrites stub node's data  
+  // and the final one generally in containers it is preferred to have data types that are assignable and Erasable
+
+  static_assert(std::is_default_constructible_v<T>, 
+                "lockfree_spsc_unbounded: T must be default constructible to initialize the stub node.");
+  //  because we are creating first a stub node so it must be default constructible not immediately assigned to something
+
+ 
+  static_assert(std::is_move_assignable_v<T> || std::is_copy_assignable_v<T>, 
+                "lockfree_spsc_unbounded: T must be move or copy assignable to transfer data into/out of pre-allocated nodes.");
+  // since in push function   to push a value we are assigning to the stub node
+
+  
+  static_assert(std::is_move_constructible_v<T> || std::is_copy_constructible_v<T>, 
+                "lockfree_spsc_unbounded: T must be move or copy constructible to be passed into push().");
+  // in order to pass argumnets to any function for example in push the data type must be constructible
+
+  
+  static_assert(std::is_nothrow_destructible_v<T>, 
+                "lockfree_spsc_unbounded: T must not throw exceptions during destruction.");
+// it means that while destruction there should be no panic  like in our try-pop fucntion we are deleting the  old node
+// so while deleting it the computer first deletes the data inside it so it should not throw exceptions or else function halts and  next lines are skipped
+
+
+
   // Works exactly same as the blocking_mpmc_unbounded queue (see this once)
   // with tail pointer pointing to stub node and your head pointer updates as
   // per the pushes. See the Lockless_Node in utils to understand the working.
