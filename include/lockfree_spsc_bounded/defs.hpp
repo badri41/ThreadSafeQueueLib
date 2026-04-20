@@ -2,11 +2,16 @@
 #define LOCKFREE_SPSC_BOUNDED_DEFS
 #include "../utils.hpp"
 #include <atomic>
+#include <cstdint>
 #include <cstddef>
 #include <memory>
+#include <new>
 #include <type_traits>
 namespace tsfqueue::impl {
 template <typename T, size_t Capacity> class lockfree_spsc_bounded {
+  static_assert(std::is_object_v<T>, "T must be an object type");
+  static_assert(std::is_destructible_v<T>, "T must be destructible");
+
   // For the implementation, we first take the size of the bounded queue from
   // user inside the templates so that we can do compile time memory allocation.
   // We have two atomic pointer, head and tail, tail for pushing the element and
@@ -40,8 +45,19 @@ private:
   alignas(cache_line_size) size_t tail_cache{0};
   alignas(cache_line_size) std::atomic<size_t> tail{0};
   alignas(cache_line_size) size_t head_cache{0};
-  static constexpr size_t capacity = Capacity + 1;
-  alignas(cache_line_size) T arr[capacity]{};
+  static constexpr size_t capacity = Capacity + 1; 
+  alignas(cache_line_size) alignas(T) std::byte arr[capacity * sizeof(T)]{};
+	
+  // Make these functions which expose raw pointers private for safety... 
+  T *slot_ptr(size_t idx) noexcept {
+	return std::launder(
+		reinterpret_cast<T *>(arr + (idx * sizeof(T))));
+  }
+
+  const T *slot_ptr(size_t idx) const noexcept {
+	return std::launder(
+		reinterpret_cast<const T *>(arr + (idx * sizeof(T))));
+  }
 
 public:
   // Public Member functions :
@@ -66,7 +82,7 @@ public:
   lockfree_spsc_bounded &operator=(const lockfree_spsc_bounded &) = delete;
   lockfree_spsc_bounded(lockfree_spsc_bounded &&) = delete;
   lockfree_spsc_bounded &operator=(lockfree_spsc_bounded &&) = delete;
-  ~lockfree_spsc_bounded() = default;
+  ~lockfree_spsc_bounded();
 
   void wait_and_push(T value);
   bool try_push(T value);
@@ -74,7 +90,7 @@ public:
   bool try_pop(T &value);
   bool peek(T &value);
 
-  template <typename... Args> bool emplace_back(Args &&...args);
+  template <typename... Args> bool emplace_back(Args &&...args); // emplace using variadic templates and perfect forwarding
 
   bool empty() const;
   size_t size() const;

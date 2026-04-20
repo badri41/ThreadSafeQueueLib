@@ -2,9 +2,11 @@
 #define LOCKFREE_SPSC_BOUNDED_IMPL_CT
 
 #include "defs.hpp"
+#include <memory>
 #include <utility>
 
 namespace tsfqueue::impl {
+
 template <typename T, size_t Capacity>
 void lockfree_spsc_bounded<T, Capacity>::wait_and_push(T value) {
   size_t cur_tail = tail.load(std::memory_order_relaxed);
@@ -17,7 +19,7 @@ void lockfree_spsc_bounded<T, Capacity>::wait_and_push(T value) {
 	head_cache = head.load(std::memory_order_acquire); // busy wait
   }
 
-  arr[cur_tail] = std::move(value);
+  std::construct_at(slot_ptr(cur_tail), std::move(value));
   // tail_cache = next_tail;
   tail.store(next_tail, std::memory_order_release);
 }
@@ -40,7 +42,9 @@ bool lockfree_spsc_bounded<T, Capacity>::try_pop(T &value) {
 	  return false;
   }
 
-  value = std::move(arr[cur_head]);
+  T *slot = slot_ptr(cur_head);
+  value = std::move(*slot);
+  std::destroy_at(slot);
   // head_cache = (cur_head + 1) % capacity;
   head.store((cur_head + 1) % capacity, std::memory_order_release);
   return true;
@@ -56,7 +60,9 @@ void lockfree_spsc_bounded<T, Capacity>::wait_and_pop(T &value) {
 	tail_cache = tail.load(std::memory_order_acquire); // busy wait
   }
 
-  value = std::move(arr[cur_head]);
+  T *slot = slot_ptr(cur_head);
+  value = std::move(*slot);
+  std::destroy_at(slot);
   // head_cache = (cur_head + 1) % capacity;
   head.store((cur_head + 1) % capacity, std::memory_order_release);
 }
@@ -70,7 +76,7 @@ bool lockfree_spsc_bounded<T, Capacity>::peek(T &value) {
 	  return false;
 	}
   }
-  value = arr[cur_head];
+  value = *slot_ptr(cur_head);
   return true;
 }
 
@@ -88,7 +94,7 @@ bool lockfree_spsc_bounded<T, Capacity>::emplace_back(Args &&...args) {
 	  return false;
 	}
   }
-  arr[cur_tail] = T(std::forward<Args>(args)...);
+  std::construct_at(slot_ptr(cur_tail), std::forward<Args>(args)...);
   // tail_cache = next_tail;
   tail.store(next_tail, std::memory_order_release);
   return true;
@@ -107,6 +113,17 @@ size_t lockfree_spsc_bounded<T, Capacity>::size() const {
 		  head.load(std::memory_order_relaxed) + capacity) %
 		 capacity;
   // again, since size is very frequently changing.
+}
+
+template <typename T, size_t Capacity>
+lockfree_spsc_bounded<T, Capacity>::~lockfree_spsc_bounded() {
+  size_t cur_head = head.load(std::memory_order_relaxed);
+  const size_t cur_tail = tail.load(std::memory_order_relaxed);
+
+  while (cur_head != cur_tail) {
+    std::destroy_at(slot_ptr(cur_head));
+    cur_head = (cur_head + 1) % capacity;
+	}
 }
 } // namespace tsfqueue::impl
 

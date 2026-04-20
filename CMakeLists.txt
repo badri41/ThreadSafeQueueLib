@@ -24,8 +24,8 @@ include_directories(include)
 option(ENABLE_TSAN "Enable ThreadSanitizer" OFF)
 
 if(ENABLE_TSAN)
-    add_compile_options(-fsanitize=thread -g -O1)
-    add_link_options(-fsanitize=thread)
+	add_compile_options(-fsanitize=thread -g -O1)
+	add_link_options(-fsanitize=thread)
 endif()
 
 # SPSC tests
