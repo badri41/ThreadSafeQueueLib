@@ -1,3 +1,3 @@
-
+C++ 20+ atleast required 
 MACOS :- brew install googletest 
 Windows :- clone and download the GoogleTest repo ... 

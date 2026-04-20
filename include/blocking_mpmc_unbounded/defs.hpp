@@ -40,7 +40,7 @@ private:
   // 1. std::mutex head_mutex is used to prevent contention at the head pointer
   // This mutex is acquired when you are modifying std::unique_ptr<node> head to
   // prevent data race.                  
-                                                                         
+																		 
   // 2. std::unique_ptr<node> head is for the head pointer. We are using      
   // unique_ptr because this will ensure they are deleted automatically and we          
   // need not call delete manually. Also see the Node we use from utils have
@@ -68,8 +68,8 @@ private:
 public:
   // Public member functions :
   blocking_mpmc_unbounded(){
-    head = std::make_unique<node>();
-    tail = head.get(); //head.get() gives the raw pointer to the tail and not the ownership to tail  
+	head = std::make_unique<node>();
+	tail = head.get(); //head.get() gives the raw pointer to the tail and not the ownership to tail  
   }
   blocking_mpmc_unbounded(const blocking_mpmc_unbounded&) = delete;
   blocking_mpmc_unbounded& operator=(const blocking_mpmc_unbounded&) = delete;
