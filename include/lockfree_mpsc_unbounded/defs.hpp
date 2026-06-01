@@ -9,7 +9,7 @@
 #include <utility>
 
 namespace tsfqueue::impl {
-template <typename T, typename Allocator = std::allocator<T>> class lockfree_spsc_unbounded {
+template <typename T, typename Allocator = std::allocator<T>> class lockfree_mpsc_unbounded {
 	static_assert(std::is_object_v<T>, "T must be an object type");
 	static_assert(!std::is_reference_v<T>, "Queue cannot store reference types");
 	static_assert(std::is_default_constructible_v<T>, "T must be default constructible");
@@ -56,8 +56,9 @@ template <typename T, typename Allocator = std::allocator<T>> class lockfree_sps
 
       node_allocator alloc{};
 
-      alignas(cache_line_size) node* head{};
-      alignas(cahce_line_size) std::atomic<node*> tail{};
+      alignas(cache_line_size) node* head{};  //This is a mpsc queue so, there is no data race between multiple consumer threads and hence 
+											// head not need be declared atomic.
+      alignas(cache_line_size) std::atomic<node*> tail{};   // tail needs to be atomic because it is accessed and modified by multiple producer threads.
       alignas(cache_line_size) std::atomic<size_t> size{0};
     };
 }
