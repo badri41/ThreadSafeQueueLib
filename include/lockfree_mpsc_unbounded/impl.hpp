@@ -57,10 +57,10 @@ namespace tsfqueue::impl {
             tail.store(other_tail,std::memory_order_relaxed);
             other.tail.store(this_tail,std::memory_order_relaxed);
 
-			size_t this_size = size.load(std::memory_order_relaxed);
-			size_t other_size = other.size.load(std::memory_order_relaxed);
-			size.store(other_size, std::memory_order_relaxed);
-			other.size.store(this_size, std::memory_order_relaxed);
+			size_t this_size = size_.load(std::memory_order_relaxed);
+			size_t other_size = other.size_.load(std::memory_order_relaxed);
+			size_.store(other_size, std::memory_order_relaxed);
+			other.size_.store(this_size, std::memory_order_relaxed);
         }
     
     template <typename T, typename Allocator>
@@ -91,7 +91,7 @@ namespace tsfqueue::impl {
     // The above memory ordering is to be discussed further.
 	old_tail->data = T(std::forward<Args>(args)...);
 	old_tail->next.store(new_stub, std::memory_order_release);
-	size.fetch_add(1, std::memory_order_relaxed);
+	size_.fetch_add(1, std::memory_order_relaxed);
 }
   template <typename T, typename Allocator>
   bool lockfree_mpsc_unbounded<T,Allocator>::try_pop(T& value){
@@ -101,7 +101,7 @@ namespace tsfqueue::impl {
     value = std::move(old_head->data);
     head=nxt;
     deallocate_node(old_head);
-    size.fetch_add(1, std::memory_order_relaxed);
+    size_.fetch_sub(1, std::memory_order_relaxed);
     return true;
   }
 
@@ -131,7 +131,7 @@ namespace tsfqueue::impl {
 
  template <typename T, typename Allocator>
  size_t lockfree_mpsc_unbounded<T, Allocator>::size() const noexcept {
-	return size.load(std::memory_order_relaxed);
+	return size_.load(std::memory_order_relaxed);
 }
 
 }
