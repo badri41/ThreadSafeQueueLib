@@ -1,8 +1,0 @@
---- THROUGHPUT BENCHMARK (TOTAL_OPS = 5000000) ---
-
-SPSC_Unbounded (Run 1)        | P=1, C=1 | Time: 0.7106   s | Throughput: 7.04e+06 Ops/sec
-SPSC_Unbounded (Run 2)        | P=1, C=1 | Time: 0.6824   s | Throughput: 7.33e+06 Ops/sec
-SPSC_Unbounded (Run 3)        | P=1, C=1 | Time: 1.1092   s | Throughput: 4.51e+06 Ops/sec
-SPSC_Unbounded (Run 4)        | P=1, C=1 | Time: 0.9512   s | Throughput: 5.26e+06 Ops/sec
-SPSC_Unbounded (Run 5)        | P=1, C=1 | Time: 1.0935   s | Throughput: 4.57e+06 Ops/sec
--------------------------------------------------------------------

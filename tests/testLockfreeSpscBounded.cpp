@@ -3,14 +3,14 @@
 #include <string>
 #include <memory>
 
-#include <lockfree_spsc_bounded/queue.hpp> 
+#include <lockfreeSpscBounded/queue.hpp> 
 
 using namespace tsfqueue::impl;
 
 
-class SPSCBoundedTest : public ::testing::Test {
+class spscBoundedTest : public ::testing::Test {
 protected:
-	lockfree_spsc_bounded<int, 100000> q;
+	lockfreeSpscBounded<int, 100000> q;
 	
 	void SetUp() override {
 	 
@@ -23,40 +23,40 @@ protected:
 //Basic Tests
 
 // checking if it is empty initially
-TEST_F(SPSCBoundedTest, Is_Empty_Initially) {
+TEST_F(spscBoundedTest, Is_Empty_Initially) {
 	EXPECT_TRUE(q.empty());
 	EXPECT_EQ(q.size(), 0);
 }
 
 // checking if push and pop works
-TEST_F(SPSCBoundedTest, Push_Pop_Works) {
-	EXPECT_TRUE(q.try_push(100));
+TEST_F(spscBoundedTest, Push_Pop_Works) {
+	EXPECT_TRUE(q.tryPush(100));
 	EXPECT_FALSE(q.empty());
 	
 	int result = 0;
-	EXPECT_TRUE(q.try_pop(result));
+	EXPECT_TRUE(q.tryPop(result));
 	EXPECT_EQ(result, 100);
 }
 
 // checking if the queue maintains the FIFO order
-TEST_F(SPSCBoundedTest, Maintains_Order) {
-	EXPECT_TRUE(q.try_push(1));
-	EXPECT_TRUE(q.try_push(2));
-	EXPECT_TRUE(q.try_push(3));
+TEST_F(spscBoundedTest, Maintains_Order) {
+	EXPECT_TRUE(q.tryPush(1));
+	EXPECT_TRUE(q.tryPush(2));
+	EXPECT_TRUE(q.tryPush(3));
 	
 	int result = 0;
-	EXPECT_TRUE(q.try_pop(result)); EXPECT_EQ(result, 1);
-	EXPECT_TRUE(q.try_pop(result)); EXPECT_EQ(result, 2);
-	EXPECT_TRUE(q.try_pop(result)); EXPECT_EQ(result, 3);
+	EXPECT_TRUE(q.tryPop(result)); EXPECT_EQ(result, 1);
+	EXPECT_TRUE(q.tryPop(result)); EXPECT_EQ(result, 2);
+	EXPECT_TRUE(q.tryPop(result)); EXPECT_EQ(result, 3);
 }
 
 // checking if peek works
-TEST_F(SPSCBoundedTest, Peek_Works_Without_Removing) {
-	EXPECT_TRUE(q.try_push(42));
+TEST_F(spscBoundedTest, Peek_Works_Without_Removing) {
+	EXPECT_TRUE(q.tryPush(42));
 	
-	int peek_val = 0;
-	EXPECT_TRUE(q.peek(peek_val));
-	EXPECT_EQ(peek_val, 42);
+	int peekVal = 0;
+	EXPECT_TRUE(q.peek(peekVal));
+	EXPECT_EQ(peekVal, 42);
 	
 	EXPECT_EQ(q.size(), 1);
 }
@@ -65,19 +65,19 @@ TEST_F(SPSCBoundedTest, Peek_Works_Without_Removing) {
 // checking for memoryleaks since we are doing dynamic memory allocation
 // basically  by the domino effect if the last pointed value is not there then everything else which is  a superset of it has also been destroyed properly
 // this test can also be thought of as checking if my queues destructore destroys  everything properly in a proper manner
-TEST(SPSCBoundedTests, No_Memory_Leaks) {
+TEST(spscBoundedTests, No_Memory_Leaks) {
    
 // used shared pointer so that i can have this tracker concept  to prove the domino effect
 
-	auto my_object = std::make_shared<int>(99);
-	std::weak_ptr<int> tracker = my_object;
+	auto myObject = std::make_shared<int>(99);
+	std::weak_ptr<int> tracker = myObject;
 	
 	{
-		lockfree_spsc_bounded<std::shared_ptr<int>, 10> queue;
+		lockfreeSpscBounded<std::shared_ptr<int>, 10> queue;
 		
 	   
-		EXPECT_TRUE(queue.try_push(my_object));
-		my_object.reset();   // because the pushing mechanism creates a copy and increases strong reference count of the control block so -1 for the object.reset
+		EXPECT_TRUE(queue.tryPush(myObject));
+		myObject.reset();   // because the pushing mechanism creates a copy and increases strong reference count of the control block so -1 for the object.reset
 		// now only queue's copied shared ptr has ownership
 		
 		EXPECT_FALSE(tracker.expired());
@@ -90,29 +90,29 @@ TEST(SPSCBoundedTests, No_Memory_Leaks) {
 
 
 // checking if the queue can handle large objects
-TEST(SPSCBoundedTests, Handles_Large_Objects) {
-	lockfree_spsc_bounded<std::string, 100> string_queue;
+TEST(spscBoundedTests, Handles_Large_Objects) {
+	lockfreeSpscBounded<std::string, 100> stringQueue;
 	
 	
 	std::string s(1000, 'X'); 
 	
-	EXPECT_TRUE(string_queue.try_push(s));
+	EXPECT_TRUE(stringQueue.tryPush(s));
 	
 	std::string output;
-	EXPECT_TRUE(string_queue.try_pop(output));
+	EXPECT_TRUE(stringQueue.tryPop(output));
 	EXPECT_EQ(output.length(), 1000);
 }
 
 
 
 //testing spsc
-TEST_F(SPSCBoundedTest,Testing_SPSC) {
+TEST_F(spscBoundedTest,Testing_SPSC) {
 	const int total = 100000;
 	
 	
 	auto producer = [&]() {
 		for (int i = 0; i < total; ++i) {
-			q.wait_and_push(i);
+			q.waitAndPush(i);
 		}
 	};
 	
@@ -121,16 +121,16 @@ TEST_F(SPSCBoundedTest,Testing_SPSC) {
 		for (int i = 0; i < total; ++i) {
 			int val = -1;
 		   
-			q.wait_and_pop(val); 
+			q.waitAndPop(val); 
 			EXPECT_EQ(val, i);
 		}
 	};
 	
-	std::thread prod_thread(producer);
-	std::thread cons_thread(consumer);
+	std::thread prodThread(producer);
+	std::thread consThread(consumer);
 	
-	prod_thread.join();
-	cons_thread.join();
+	prodThread.join();
+	consThread.join();
 	
 	
 	EXPECT_TRUE(q.empty());
@@ -138,26 +138,26 @@ TEST_F(SPSCBoundedTest,Testing_SPSC) {
 
 
 //final check and also checking peek function
-TEST_F(SPSCBoundedTest, final_spsccheck_with_peek_and_pop) {
+TEST_F(spscBoundedTest, finalSpsccheckWithPeekAndPop) {
 	const int total = 50000;
 	
 	auto producer = [&]() {
-		for (int i = 0; i < total; ++i) q.wait_and_push(i);
+		for (int i = 0; i < total; ++i) q.waitAndPush(i);
 	};
 	
 	auto consumer = [&]() {
 		int expected = 0;
 		while (expected < total) {
-			int peek_val = -1;
-			int pop_val = -1;
+			int peekVal = -1;
+			int popVal = -1;
 			
 			
-			if (q.peek(peek_val)) {
+			if (q.peek(peekVal)) {
 				
-				bool success = q.try_pop(pop_val);
+				bool success = q.tryPop(popVal);
 				EXPECT_TRUE(success);
-				EXPECT_EQ(peek_val, pop_val);
-				EXPECT_EQ(pop_val, expected);
+				EXPECT_EQ(peekVal, popVal);
+				EXPECT_EQ(popVal, expected);
 				expected++;
 			}
 		}
@@ -169,39 +169,39 @@ TEST_F(SPSCBoundedTest, final_spsccheck_with_peek_and_pop) {
 	t2.join();
 }
 
-TEST(SPSCBoundedTests, Try_Push_Fails_When_Full) {
-	lockfree_spsc_bounded<int, 2> queue;
-	EXPECT_TRUE(queue.try_push(1));
-	EXPECT_TRUE(queue.try_push(2));
-	EXPECT_FALSE(queue.try_push(3)); // Should fail because capacity is 2
+TEST(spscBoundedTests, Try_Push_Fails_When_Full) {
+	lockfreeSpscBounded<int, 2> queue;
+	EXPECT_TRUE(queue.tryPush(1));
+	EXPECT_TRUE(queue.tryPush(2));
+	EXPECT_FALSE(queue.tryPush(3)); // Should fail because capacity is 2
 }
 
 // --- RIGOROUS TESTS ---
 
 // 1. Stress testing wrap-around with a small queue capacity.
 // This forces the queue to wrap around frequently and triggers full/empty conditions constantly.
-TEST(SPSCBoundedTests, HighContention_WrapAround) {
-	lockfree_spsc_bounded<int, 1024> small_q;
+TEST(spscBoundedTests, HighContention_WrapAround) {
+	lockfreeSpscBounded<int, 1024> smallQ;
 	const int total = 5000000; // 5 million items
 
-	std::atomic<bool> start_flag{false};
+	std::atomic<bool> startFlag{false};
 
 	auto producer = [&]() {
-		while (!start_flag.load(std::memory_order_acquire)) {
+		while (!startFlag.load(std::memory_order_acquire)) {
 			std::this_thread::yield();
 		}
 		for (int i = 0; i < total; ++i) {
-			small_q.wait_and_push(i);
+			smallQ.waitAndPush(i);
 		}
 	};
 
 	auto consumer = [&]() {
-		while (!start_flag.load(std::memory_order_acquire)) {
+		while (!startFlag.load(std::memory_order_acquire)) {
 			std::this_thread::yield();
 		}
 		for (int i = 0; i < total; ++i) {
 			int val = -1;
-			small_q.wait_and_pop(val);
+			smallQ.waitAndPop(val);
 			EXPECT_EQ(val, i);
 		}
 	};
@@ -210,23 +210,23 @@ TEST(SPSCBoundedTests, HighContention_WrapAround) {
 	std::thread cons(consumer);
 
 	// Start both threads simultaneously
-	start_flag.store(true, std::memory_order_release);
+	startFlag.store(true, std::memory_order_release);
 
 	prod.join();
 	cons.join();
 
-	EXPECT_TRUE(small_q.empty());
+	EXPECT_TRUE(smallQ.empty());
 }
 
-// 2. Hammering try_push and try_pop in tight loops
+// 2. Hammering tryPush and tryPop in tight loops
 // Tests the non-blocking endpoints under heavy load.
-TEST(SPSCBoundedTests, TryPushPop_Spinning) {
-	lockfree_spsc_bounded<int, 4096> spin_q;
+TEST(spscBoundedTests, TryPushPop_Spinning) {
+	lockfreeSpscBounded<int, 4096> spinQ;
 	const int total = 5000000;
 
 	auto producer = [&]() {
 		for (int i = 0; i < total; ++i) {
-			while (!spin_q.try_push(i)) {
+			while (!spinQ.tryPush(i)) {
 				// busy spin (no yield, maximizing contention)
 			}
 		}
@@ -235,7 +235,7 @@ TEST(SPSCBoundedTests, TryPushPop_Spinning) {
 	auto consumer = [&]() {
 		for (int i = 0; i < total; ++i) {
 			int val = -1;
-			while (!spin_q.try_pop(val)) {
+			while (!spinQ.tryPop(val)) {
 				// busy spin
 			}
 			EXPECT_EQ(val, i);
@@ -265,32 +265,32 @@ struct ComplexData {
 		snprintf(name, sizeof(name), "Name%d", i);
 	}
 
-	bool isValid(int expected_id) const {
-		if (id != expected_id) return false;
+	bool isValid(int expectedId) const {
+		if (id != expectedId) return false;
 		for (int j = 0; j < 4; ++j) {
-			if (values[j] != expected_id * 3.14 + j) return false;
+			if (values[j] != expectedId * 3.14 + j) return false;
 		}
-		char expected_name[16];
-		snprintf(expected_name, sizeof(expected_name), "Name%d", expected_id);
-		if (strncmp(name, expected_name, 16) != 0) return false;
+		char expectedName[16];
+		snprintf(expectedName, sizeof(expectedName), "Name%d", expectedId);
+		if (strncmp(name, expectedName, 16) != 0) return false;
 		return true;
 	}
 };
 
-TEST(SPSCBoundedTests, ComplexObjectIntegrity) {
-	lockfree_spsc_bounded<ComplexData, 1024> obj_q;
+TEST(spscBoundedTests, ComplexObjectIntegrity) {
+	lockfreeSpscBounded<ComplexData, 1024> objQ;
 	const int total = 1000000;
 
 	auto producer = [&]() {
 		for (int i = 0; i < total; ++i) {
-			obj_q.wait_and_push(ComplexData(i));
+			objQ.waitAndPush(ComplexData(i));
 		}
 	};
 
 	auto consumer = [&]() {
 		for (int i = 0; i < total; ++i) {
 			ComplexData data;
-			obj_q.wait_and_pop(data);
+			objQ.waitAndPop(data);
 			EXPECT_TRUE(data.isValid(i));
 		}
 	};

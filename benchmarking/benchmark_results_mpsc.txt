@@ -1,8 +1,0 @@
---- THROUGHPUT BENCHMARK (TOTAL_OPS = 1000000) ---
-
-MPSC_Unbounded                | P=1        | Time: 0.1769   s | Throughput: 5.65e+06 Ops/sec
-MPSC_Unbounded                | P=2        | Time: 0.0839   s | Throughput: 1.19e+07 Ops/sec
-MPSC_Unbounded                | P=4        | Time: 0.0557   s | Throughput: 1.80e+07 Ops/sec
-MPSC_Unbounded                | P=8        | Time: 0.0548   s | Throughput: 1.82e+07 Ops/sec
-MPSC_Unbounded                | P=16       | Time: 0.0513   s | Throughput: 1.95e+07 Ops/sec
--------------------------------------------------------------------

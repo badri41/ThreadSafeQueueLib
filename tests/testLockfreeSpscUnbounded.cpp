@@ -3,14 +3,14 @@
 #include <string>
 #include <memory>
 
-#include <lockfree_spsc_unbounded/queue.hpp> 
+#include <lockfreeSpscUnbounded/queue.hpp> 
 
 using namespace tsfqueue::impl;
 
 
 class SPSCTest : public ::testing::Test {
 protected:
-	lockfree_spsc_unbounded<int, std::allocator<int>, true> q;
+	lockfreeSpscUnbounded<int, std::allocator<int>, true> q;
 	
 	
 	void SetUp() override {
@@ -35,7 +35,7 @@ TEST_F(SPSCTest, Push_Pop_Works) {
 	EXPECT_FALSE(q.empty());
 	
 	int result = 0;
-	EXPECT_TRUE(q.try_pop(result));
+	EXPECT_TRUE(q.tryPop(result));
 	EXPECT_EQ(result, 100);
 }
 
@@ -46,18 +46,18 @@ TEST_F(SPSCTest, Maintains_Order) {
 	q.push(3);
 	
 	int result = 0;
-	q.try_pop(result); EXPECT_EQ(result, 1);
-	q.try_pop(result); EXPECT_EQ(result, 2);
-	q.try_pop(result); EXPECT_EQ(result, 3);
+	q.tryPop(result); EXPECT_EQ(result, 1);
+	q.tryPop(result); EXPECT_EQ(result, 2);
+	q.tryPop(result); EXPECT_EQ(result, 3);
 }
 
 // checking if peek works
 TEST_F(SPSCTest, Peek_Works_Without_Removing) {
 	q.push(42);
 	
-	int peek_val = 0;
-	EXPECT_TRUE(q.peek(peek_val));
-	EXPECT_EQ(peek_val, 42);
+	int peekVal = 0;
+	EXPECT_TRUE(q.peek(peekVal));
+	EXPECT_EQ(peekVal, 42);
 	
 	
 	EXPECT_EQ(q.size(), 1);
@@ -71,15 +71,15 @@ TEST(SPSCObjectTests, No_Memory_Leaks) {
    
 // used shared pointer so that i can have this tracker concept  to prove the domino effect
 
-	auto my_object = std::make_shared<int>(99);
-	std::weak_ptr<int> tracker = my_object;
+	auto myObject = std::make_shared<int>(99);
+	std::weak_ptr<int> tracker = myObject;
 	
 	{
-		lockfree_spsc_unbounded<std::shared_ptr<int>> queue;
+		lockfreeSpscUnbounded<std::shared_ptr<int>> queue;
 		
 	   
-		queue.push(my_object);
-		my_object.reset();   // because the pushing mechanism creates a copy and increases strong reference count of the control block so -1 for the object.reset
+		queue.push(myObject);
+		myObject.reset();   // because the pushing mechanism creates a copy and increases strong reference count of the control block so -1 for the object.reset
 		// now only queue's copied shared ptr has ownership
 		
 		EXPECT_FALSE(tracker.expired());
@@ -93,27 +93,27 @@ TEST(SPSCObjectTests, No_Memory_Leaks) {
 
 // checking if the queue can handle large objects
 TEST(SPSCObjectTests, Handles_Large_Objects) {
-	lockfree_spsc_unbounded<std::string> string_queue;
+	lockfreeSpscUnbounded<std::string> stringQueue;
 	
 	
 	std::string s(1000, 'X'); 
 	
-	string_queue.push(s);
+	stringQueue.push(s);
 	
 	std::string output;
-	EXPECT_TRUE(string_queue.try_pop(output));
+	EXPECT_TRUE(stringQueue.tryPop(output));
 	EXPECT_EQ(output.length(), 1000);
 }
 
-//move_assignment operator is working
-TEST(SPSCObjectTests, move_assignment_operator_check) {
-	lockfree_spsc_unbounded<std::unique_ptr<int>> ptr_queue;
+//moveAssignment operator is working
+TEST(SPSCObjectTests, moveAssignmentOperatorCheck) {
+	lockfreeSpscUnbounded<std::unique_ptr<int>> ptrQueue;
 	
 	// We can't copy unique_ptr, so the queue MUST move it correctly.
-	ptr_queue.push(std::make_unique<int>(777));
+	ptrQueue.push(std::make_unique<int>(777));
 	
 	std::unique_ptr<int> result;
-	EXPECT_TRUE(ptr_queue.try_pop(result));
+	EXPECT_TRUE(ptrQueue.tryPop(result));
 	
 	ASSERT_NE(result, nullptr);
 	EXPECT_EQ(*result, 777);
@@ -135,16 +135,16 @@ TEST_F(SPSCTest,Testing_SPSC) {
 		for (int i = 0; i < total; ++i) {
 			int val = -1;
 		   
-			q.wait_and_pop(val); 
+			q.waitAndPop(val); 
 			EXPECT_EQ(val, i);
 		}
 	};
 	
-	std::thread prod_thread(producer);
-	std::thread cons_thread(consumer);
+	std::thread prodThread(producer);
+	std::thread consThread(consumer);
 	
-	prod_thread.join();
-	cons_thread.join();
+	prodThread.join();
+	consThread.join();
 	
 	
 	EXPECT_TRUE(q.empty());
@@ -154,7 +154,7 @@ TEST_F(SPSCTest,Testing_SPSC) {
 
 
 //final check and also checking peek function
-TEST_F(SPSCTest, final_spsccheck_with_peek_and_pop) {
+TEST_F(SPSCTest, finalSpsccheckWithPeekAndPop) {
 	const int total = 50000;
 	
 	auto producer = [&]() {
@@ -164,16 +164,16 @@ TEST_F(SPSCTest, final_spsccheck_with_peek_and_pop) {
 	auto consumer = [&]() {
 		int expected = 0;
 		while (expected < total) {
-			int peek_val = -1;
-			int pop_val = -1;
+			int peekVal = -1;
+			int popVal = -1;
 			
 			
-			if (q.peek(peek_val)) {
+			if (q.peek(peekVal)) {
 				
-				bool success = q.try_pop(pop_val);
+				bool success = q.tryPop(popVal);
 				EXPECT_TRUE(success);
-				EXPECT_EQ(peek_val, pop_val);
-				EXPECT_EQ(pop_val, expected);
+				EXPECT_EQ(peekVal, popVal);
+				EXPECT_EQ(popVal, expected);
 				expected++;
 			}
 		}

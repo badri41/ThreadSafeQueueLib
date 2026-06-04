@@ -9,7 +9,7 @@
 
 class BlockingMPMCQueueBasicTest : public ::testing::Test {
 protected:
-  using IntQueue = tsfqueue::BlockingMPMCUnbounded<int>;
+  using IntQueue = tsfqueue::blockingMpmcUnbounded<int>;
 
   void SetUp() override {}
 
@@ -18,7 +18,7 @@ protected:
 
 class BlockingMPMCQueueThreadTest : public ::testing::Test {
 protected:
-  using IntQueue = tsfqueue::BlockingMPMCUnbounded<int>;
+  using IntQueue = tsfqueue::blockingMpmcUnbounded<int>;
 
   void WaitForThreads(std::vector<std::thread> &threads) {
 	for (auto &t : threads) {
@@ -31,7 +31,7 @@ protected:
 
 class BlockingMPMCQueueTypeTest : public ::testing::TestWithParam<int> {
 protected:
-  using IntQueue = tsfqueue::BlockingMPMCUnbounded<int>;
+  using IntQueue = tsfqueue::blockingMpmcUnbounded<int>;
 };
 
 // BASIC TESTS
@@ -61,7 +61,7 @@ TEST_F(BlockingMPMCQueueBasicTest, Push_Multiple_Elements) {
 TEST_F(BlockingMPMCQueueBasicTest, Try_PopEmpty_Queue_Returns_False) {
   IntQueue q;
   int value = -1;
-  bool result = q.try_pop(value);
+  bool result = q.tryPop(value);
   EXPECT_FALSE(result);
   EXPECT_EQ(value, -1);
   EXPECT_TRUE(q.empty());
@@ -69,7 +69,7 @@ TEST_F(BlockingMPMCQueueBasicTest, Try_PopEmpty_Queue_Returns_False) {
 
 TEST_F(BlockingMPMCQueueBasicTest, Try_PopEmpty_Queue_Returns_Null) {
   IntQueue q;
-  auto result = q.try_pop();
+  auto result = q.tryPop();
   EXPECT_EQ(result, nullptr);
 }
 
@@ -78,7 +78,7 @@ TEST_F(BlockingMPMCQueueBasicTest, Try_Pop_Single_Element) {
   q.push(42);
 
   int value;
-  bool result = q.try_pop(value);
+  bool result = q.tryPop(value);
 
   EXPECT_TRUE(result);
   EXPECT_EQ(value, 42);
@@ -95,7 +95,7 @@ TEST_F(BlockingMPMCQueueBasicTest, Try_Pop_Multiple_Elements) {
 
   for (int i = 0; i < 5; ++i) {
 	int value;
-	bool result = q.try_pop(value);
+	bool result = q.tryPop(value);
 	EXPECT_TRUE(result);
 	EXPECT_EQ(value, i * 10);
   }
@@ -107,7 +107,7 @@ TEST_F(BlockingMPMCQueueBasicTest, Try_Pop_Shared_Ptr_Variant) {
   IntQueue q;
   q.push(99);
 
-  auto result = q.try_pop();
+  auto result = q.tryPop();
   EXPECT_NE(result, nullptr);
   EXPECT_EQ(*result, 99);
 }
@@ -122,7 +122,7 @@ TEST_F(BlockingMPMCQueueBasicTest, FIFO_Order) {
 
   for (int expected : values) {
 	int actual;
-	q.try_pop(actual);
+	q.tryPop(actual);
 	EXPECT_EQ(actual, expected);
   }
 }
@@ -139,7 +139,7 @@ TEST_F(BlockingMPMCQueueBasicTest, Correct_size_tracking) {
 
   for (int i = 0; i < 20; ++i) {
 	int dummy;
-	q.try_pop(dummy);
+	q.tryPop(dummy);
 	EXPECT_EQ(q.size(), 19 - i);
   }
 }
@@ -148,7 +148,7 @@ TEST_F(BlockingMPMCQueueBasicTest, Wait_And_Pop_Shared_Ptr_Variant) {
   IntQueue q;
   q.push(42);
 
-  auto result = q.wait_and_pop();
+  auto result = q.waitAndPop();
   EXPECT_NE(result, nullptr);
   EXPECT_EQ(*result, 42);
 }
@@ -158,7 +158,7 @@ TEST_F(BlockingMPMCQueueBasicTest, Wait_And_Pop_Reference_Variant) {
   q.push(123);
 
   int value;
-  q.wait_and_pop(value);
+  q.waitAndPop(value);
   EXPECT_EQ(value, 123);
 }
 
@@ -180,7 +180,7 @@ TEST_F(BlockingMPMCQueueThreadTest, Single_Producer_Single_Consumer) {
   auto consumer = std::thread([&q, &consumed]() {
 	for (int i = 0; i < 100; ++i) {
 	  int value;
-	  while (!q.try_pop(value)) {
+	  while (!q.tryPop(value)) {
 		std::this_thread::yield();
 	  }
 	  consumed.push_back(value);
@@ -216,7 +216,7 @@ TEST_F(BlockingMPMCQueueThreadTest, Multiple_Producers_Single_Consumer) {
 	int count = 0;
 	while (count < NUM_PRODUCERS * ITEMS_PER_PRODUCER) {
 	  int value;
-	  if (q.try_pop(value)) {
+	  if (q.tryPop(value)) {
 		consumed.push_back(value);
 		++count;
 	  }
@@ -238,21 +238,21 @@ TEST_F(BlockingMPMCQueueThreadTest, Single_Producer_Multiple_Consumers) {
 
   std::vector<std::thread> consumers;
   std::vector<std::vector<int>> consumed(NUM_CONSUMERS);
-  std::mutex result_mutex;
-  std::atomic<bool> producer_done{false};
+  std::mutex resultMutex;
+  std::atomic<bool> producerDone{false};
 
   // Launch consumer threads
   for (size_t c = 0; c < NUM_CONSUMERS; ++c) {
-	consumers.emplace_back([&q, &consumed, &result_mutex, &producer_done, c]() {
+	consumers.emplace_back([&q, &consumed, &resultMutex, &producerDone, c]() {
 	  int value;
 	  // Keep trying to pop items until producer is done AND queue is empty
 	  while (true) {
-		if (q.try_pop(value)) {
+		if (q.tryPop(value)) {
 		  {
-			std::lock_guard<std::mutex> lock(result_mutex);
+			std::lock_guard<std::mutex> lock(resultMutex);
 			consumed[c].push_back(value);
 		  }
-		} else if (producer_done) {
+		} else if (producerDone) {
 		  // Producer done and got nothing, exit
 		  break;
 		} else {
@@ -271,17 +271,17 @@ TEST_F(BlockingMPMCQueueThreadTest, Single_Producer_Multiple_Consumers) {
   });
 
   producer.join();
-  producer_done = true;
+  producerDone = true;
 
   WaitForThreads(consumers);
 
   // {checking all the items are consumed no dupliactes are there or nothing is
   // missed}
-  size_t total_consumed = 0;
+  size_t totalConsumed = 0;
   for (const auto &c : consumed) {
-	total_consumed += c.size();
+	totalConsumed += c.size();
   }
-  EXPECT_EQ(total_consumed, static_cast<size_t>(TOTAL_ITEMS));
+  EXPECT_EQ(totalConsumed, static_cast<size_t>(TOTAL_ITEMS));
   EXPECT_TRUE(q.empty());
 }
 
@@ -291,15 +291,15 @@ TEST_F(BlockingMPMCQueueThreadTest, MultipleProducersMultipleConsumers) {
   const int NUM_CONSUMERS = 3;
   const int ITEMS_PER_PRODUCER = 50;
 
-  std::vector<std::thread> producer_threads;
-  std::vector<std::thread> consumer_threads;
-  std::vector<int> all_consumed;
-  std::mutex result_mutex;
-  std::atomic<bool> producers_done{false};
+  std::vector<std::thread> producerThreads;
+  std::vector<std::thread> consumerThreads;
+  std::vector<int> allConsumed;
+  std::mutex resultMutex;
+  std::atomic<bool> producersDone{false};
 
   // Launch producer threads
   for (int p = 0; p < NUM_PRODUCERS; ++p) {
-	producer_threads.emplace_back([&q, p]() {
+	producerThreads.emplace_back([&q, p]() {
 	  for (int i = 0; i < ITEMS_PER_PRODUCER; ++i) {
 		q.push(p * 10000 + i);
 	  }
@@ -308,18 +308,18 @@ TEST_F(BlockingMPMCQueueThreadTest, MultipleProducersMultipleConsumers) {
 
   // Launch consumer threads
   for (int c = 0; c < NUM_CONSUMERS; ++c) {
-	consumer_threads.emplace_back([&q, &all_consumed, &result_mutex, &producers_done]() {
+	consumerThreads.emplace_back([&q, &allConsumed, &resultMutex, &producersDone]() {
 	  int value;
 	  while (true) {
-		if (q.try_pop(value)) {
-		  std::lock_guard<std::mutex> lock(result_mutex);
-		  all_consumed.push_back(value);
-		} else if (producers_done.load(std::memory_order_acquire)) {
+		if (q.tryPop(value)) {
+		  std::lock_guard<std::mutex> lock(resultMutex);
+		  allConsumed.push_back(value);
+		} else if (producersDone.load(std::memory_order_acquire)) {
 		  // Producers are done; try one last drain in case items were pushed
-		  // between our try_pop and the flag check
-		  while (q.try_pop(value)) {
-			std::lock_guard<std::mutex> lock(result_mutex);
-			all_consumed.push_back(value);
+		  // between our tryPop and the flag check
+		  while (q.tryPop(value)) {
+			std::lock_guard<std::mutex> lock(resultMutex);
+			allConsumed.push_back(value);
 		  }
 		  break;
 		} else {
@@ -330,19 +330,19 @@ TEST_F(BlockingMPMCQueueThreadTest, MultipleProducersMultipleConsumers) {
   }
 
   // Wait for all producers to finish
-  for (auto &t : producer_threads) {
+  for (auto &t : producerThreads) {
 	t.join();
   }
 
   // Signal consumers that no more items will be produced
-  producers_done.store(true, std::memory_order_release);
+  producersDone.store(true, std::memory_order_release);
 
   // Wait for all consumers to finish draining
-  for (auto &t : consumer_threads) {
+  for (auto &t : consumerThreads) {
 	t.join();
   }
 
-  EXPECT_EQ(all_consumed.size(), NUM_PRODUCERS * ITEMS_PER_PRODUCER);
+  EXPECT_EQ(allConsumed.size(), NUM_PRODUCERS * ITEMS_PER_PRODUCER);
   EXPECT_TRUE(q.empty());
 }
 
@@ -358,7 +358,7 @@ TEST_F(BlockingMPMCQueueBasicTest, DataIntegrity_LargeNumbers) {
 
   for (int expected : original) {
 	int actual;
-	q.try_pop(actual);
+	q.tryPop(actual);
 	EXPECT_EQ(actual, expected);
   }
 }
@@ -370,7 +370,7 @@ TEST_F(BlockingMPMCQueueBasicTest, DataIntegrity_After_Multiple_Pushes) {
   for (int i = 0; i < NUM_ITERATIONS; ++i) {
 	q.push(i);
 	int popped;
-	q.try_pop(popped);
+	q.tryPop(popped);
 	EXPECT_EQ(popped, i);
 	EXPECT_TRUE(q.empty());
   }
@@ -386,7 +386,7 @@ TEST_F(BlockingMPMCQueueBasicTest, AlternatingPushPop) {
 	EXPECT_FALSE(q.empty());
 
 	int val;
-	q.try_pop(val);
+	q.tryPop(val);
 	EXPECT_EQ(val, i);
 	EXPECT_TRUE(q.empty());
   }
@@ -396,7 +396,7 @@ TEST_F(BlockingMPMCQueueThreadTest, RapidProducerConsumer) {
   IntQueue q;
   const int ITEMS = 500;
   std::vector<int> consumed;
-  std::mutex result_mutex;
+  std::mutex resultMutex;
 
   auto producer = std::thread([&q, ITEMS]() {
 	for (int i = 0; i < ITEMS; ++i) {
@@ -404,13 +404,13 @@ TEST_F(BlockingMPMCQueueThreadTest, RapidProducerConsumer) {
 	}
   });
 
-  auto consumer = std::thread([&q, &consumed, &result_mutex, ITEMS]() {
+  auto consumer = std::thread([&q, &consumed, &resultMutex, ITEMS]() {
 	int count = 0;
 	while (count < ITEMS) {
 	  int value;
-	  if (q.try_pop(value)) {
+	  if (q.tryPop(value)) {
 		{
-		  std::lock_guard<std::mutex> lock(result_mutex);
+		  std::lock_guard<std::mutex> lock(resultMutex);
 		  consumed.push_back(value);
 		}
 		++count;
@@ -437,7 +437,7 @@ TEST_F(BlockingMPMCQueueBasicTest, LargeQueueCapacity) {
   // Pop all items
   for (int i = 0; i < LARGE_SIZE; ++i) {
 	int val;
-	bool result = q.try_pop(val);
+	bool result = q.tryPop(val);
 	EXPECT_TRUE(result);
 	EXPECT_EQ(val, i);
   }
@@ -455,7 +455,7 @@ TEST_F(BlockingMPMCQueueBasicTest, Empty_After_Push_And_Pop) {
 	EXPECT_FALSE(q.empty());
 
 	int val;
-	q.try_pop(val);
+	q.tryPop(val);
 	EXPECT_EQ(q.size(), 0);
 	EXPECT_TRUE(q.empty());
   }
@@ -464,19 +464,19 @@ TEST_F(BlockingMPMCQueueBasicTest, Empty_After_Push_And_Pop) {
 TEST_F(BlockingMPMCQueueBasicTest, Size_Tracking) {
   IntQueue q;
 
-  size_t expected_size = 0;
+  size_t expectedSize = 0;
 
   for (int i = 0; i < 100; ++i) {
 	q.push(i);
-	++expected_size;
-	EXPECT_EQ(q.size(), expected_size);
+	++expectedSize;
+	EXPECT_EQ(q.size(), expectedSize);
   }
 
   for (int i = 0; i < 100; ++i) {
 	int dummy;
-	q.try_pop(dummy);
-	--expected_size;
-	EXPECT_EQ(q.size(), expected_size);
+	q.tryPop(dummy);
+	--expectedSize;
+	EXPECT_EQ(q.size(), expectedSize);
   }
 }
 
@@ -495,7 +495,7 @@ TEST_P(BlockingMPMCQueueTypeTest, PushPopMultipleItems) {
 
   for (int i = 0; i < count; ++i) {
 	int val;
-	q.try_pop(val);
+	q.tryPop(val);
 	EXPECT_EQ(val, i);
   }
 

@@ -28,31 +28,31 @@ if(ENABLE_TSAN)
 	add_link_options(-fsanitize=thread)
 endif()
 
-# SPSC tests (unbounded)
-add_executable(test_spsc tests/test_lockfree_spsc_unbounded.cpp)
-target_link_libraries(test_spsc GTest::gtest_main Threads::Threads)
+# spsc tests (unbounded)
+add_executable(testSpsc tests/testLockfreeSpscUnbounded.cpp)
+target_link_libraries(testSpsc GTest::gtest_main Threads::Threads)
 
-# SPSC tests (bounded)
-add_executable(test_spsc_bounded tests/test_lockfree_spsc_bounded.cpp)
-target_link_libraries(test_spsc_bounded GTest::gtest_main Threads::Threads)
+# spsc tests (bounded)
+add_executable(testSpscBounded tests/testLockfreeSpscBounded.cpp)
+target_link_libraries(testSpscBounded GTest::gtest_main Threads::Threads)
 
-# MPSC tests    
-add_executable(test_mpsc tests/test_mpsc.cpp)
-target_link_libraries(test_mpsc GTest::gtest_main Threads::Threads)
+# mpsc tests    
+add_executable(testMpsc tests/testMpsc.cpp)
+target_link_libraries(testMpsc GTest::gtest_main Threads::Threads)
 
-# MPMC tests
-add_executable(test_mpmc tests/test_mpmc.cpp)
-target_link_libraries(test_mpmc GTest::gtest_main Threads::Threads)
+# mpmc tests
+add_executable(testMpmc tests/testMpmc.cpp)
+target_link_libraries(testMpmc GTest::gtest_main Threads::Threads)
 
 # Register tests
-add_test(NAME SPSC COMMAND test_spsc)
-add_test(NAME SPSC_BOUNDED COMMAND test_spsc_bounded)
-add_test(NAME MPSC COMMAND test_mpsc)
-add_test(NAME MPMC COMMAND test_mpmc)
+add_test(NAME spsc COMMAND testSpsc)
+add_test(NAME spscBounded COMMAND testSpscBounded)
+add_test(NAME mpsc COMMAND testMpsc)
+add_test(NAME mpmc COMMAND testMpmc)
 
-# MPSC isolated benchmarks
-add_executable(bench_lat_mpsc benchmarking/bench_latency_mpsc.cpp)
-target_link_libraries(bench_lat_mpsc Threads::Threads)
+# mpsc isolated benchmarks
+add_executable(benchLatMpsc benchmarking/benchLatencyMpsc.cpp)
+target_link_libraries(benchLatMpsc Threads::Threads)
 
-add_executable(bench_thr_mpsc benchmarking/bench_throughput_mpsc.cpp)
-target_link_libraries(bench_thr_mpsc Threads::Threads)
+add_executable(benchThrMpsc benchmarking/benchThroughputMpsc.cpp)
+target_link_libraries(benchThrMpsc Threads::Threads)

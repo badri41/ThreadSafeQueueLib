@@ -1,8 +1,0 @@
---- LATENCY BENCHMARK (TOTAL_OPS = 1000000) ---
-Note: Lower is better. Measurements are in microseconds (us).
-
-MPSC_Unbounded              | P=1, C=1 | Avg: 12.55    us | p50: 0.70     us | p99: 123.50   us | p99.9: 253.10 us
-MPSC_Unbounded              | P=2, C=1 | Avg: 8695.27  us | p50: 7207.30  us | p99: 21634.40 us | p99.9: 21803.70 us
-MPSC_Unbounded              | P=4, C=1 | Avg: 38282.70 us | p50: 39352.60 us | p99: 65887.70 us | p99.9: 65960.80 us
-MPSC_Unbounded              | P=8, C=1 | Avg: 67798.68 us | p50: 68444.10 us | p99: 107720.30 us | p99.9: 107976.20 us
---------------------------------------------------------------------------------------

@@ -2,4 +2,9 @@
 /.vscode/
 try.cpp
 .git/
-.gitignoretry\ntry.cpp\n.vscode/\nexamples/\n.DS_Store\n.editorconfig
+.gitignore
+try
+try.cpp
+/examples/
+.DS_Store
+.editorconfig
